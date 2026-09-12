@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Keeps the talk radio server running: at login, after a crash, and across
+  reboots.
+
+  KeepAlive is unconditional on purpose. The server already survives network
+  changes internally, but launchd is the backstop for everything it cannot
+  catch - an ffmpeg that wedges, an OOM, a bad upgrade.
+
+  Install:
+    cp tools/com.richsad.cydtalkradio.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.richsad.cydtalkradio.plist
+
+  Stop / uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.richsad.cydtalkradio.plist
+
+  No board address is configured: the server learns it from the board's
+  heartbeat, so a DHCP lease change on either side heals itself.
+
+  Copyright (c) 2026 Rich Sadowsky. MIT licensed - see LICENSE.
+  Written with Claude Code (Claude Opus 5).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.richsad.cydtalkradio</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/rich-mbp14/source/cyd/cyd-talk-radio-esp32s3-4inch/tools/radio_server.py</string>
+    </array>
+
+    <!-- launchd hands jobs a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin) that
+         excludes Homebrew, so ffmpeg is invisible without this. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <!-- Without this, launchd runs the job at background QoS. macOS coalesces
+         timers hard for background processes, so the 16 ms per-packet sleep
+         overshoots to ~37 ms and the board receives 27 packets/s instead of
+         62.5 - audible as constant fluttering, like audio through a fan.
+         "Interactive" opts out of that throttling. -->
+    <key>ProcessType</key>
+    <string>Interactive</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Do not spin if it fails immediately at boot before the network is up. -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rich-mbp14/Library/Logs/cyd-talk-radio.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/rich-mbp14/Library/Logs/cyd-talk-radio.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/rich-mbp14/source/cyd/cyd-talk-radio-esp32s3-4inch</string>
+</dict>
+</plist>

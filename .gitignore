@@ -1,0 +1,9 @@
+# Credentials - copy secrets.h.example to secrets.h and fill it in.
+TalkRadio/secrets.h
+
+.DS_Store
+__pycache__/
+*.pyc
+build/
+*.bin
+.venv/
